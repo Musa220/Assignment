@@ -1,3 +1,5 @@
+import 'package:assignment/converter_page.dart';
+import 'package:assignment/login_page.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -8,47 +10,124 @@ class HomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("HomePage"),
-        backgroundColor: Colors.deepPurple,
+        title: Text(
+          "Home",
+          style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: Colors.black,
         foregroundColor: Colors.white,
-        leading: Icon(Icons.dashboard, color: Colors.white),
+        leading: Icon(Icons.grid_view_rounded, color: Colors.white),
       ),
       body: SingleChildScrollView(
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.all(12),
               child: Text(
-                "Hello 63E",
-                style: TextStyle(color: Colors.deepOrangeAccent, fontSize: 30),
+                "Hello Musa 👋",
+                style: GoogleFonts.poppins(
+                  color: Colors.black,
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
             Padding(
-              padding: const EdgeInsets.all(10.0),
+              padding: const EdgeInsets.all(8.0),
               child: Text(
-                "Welcome to our class",
-                style: TextStyle(color: Colors.green[700], fontSize: 20),
+                "Welcome back!",
+                style: GoogleFonts.poppins(
+                  color: Colors.grey[700],
+                  fontSize: 18,
+                ),
               ),
             ),
+            SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) {
+                          return ConverterPage();
+                        },
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.black,
+                    foregroundColor: Colors.amber,
+                  ),
+                  child: Text(
+                    "Converter Page",
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                SizedBox(width: 20),
+                OutlinedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) {
+                          return LoginPage();
+                        },
+                      ),
+                    );
+                  },
+                  style: OutlinedButton.styleFrom(
+                    backgroundColor: Colors.teal,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: Text(
+                    "Login Page",
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                SizedBox(width: 20),
+                TextButton(
+                  onPressed: () {},
+                  style: TextButton.styleFrom(side: BorderSide()),
+                  child: Text("TextButton"),
+                ),
+              ],
+            ),
+            SizedBox(height: 20),
+
             SizedBox(
               height: 200,
               width: 200,
               child: Card(
+                elevation: 10,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(50),
+                  borderRadius: BorderRadius.circular(25),
                 ),
-                color: Colors.blueAccent,
-                child: Center(
-                  child: Image.asset(
-                    "assets/images/musa.jpeg",
+                color: Colors.black,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(25),
+                  child: Image.network(
+                    "https://images.unsplash.com/photo-1503023345310-bd7c1de61c7d",
                     fit: BoxFit.cover,
                   ),
                 ),
               ),
             ),
-            Image.network(
-              "https://plus.unsplash.com/premium_photo-1664474619075-644dd191935f?fm=jpg&q=60&w=3000&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8aW1hZ2V8ZW58MHx8MHx8fDA%3D",
+
+            SizedBox(height: 20),
+
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: Image.network(
+                  "https://images.unsplash.com/photo-1492724441997-5dc865305da7",
+                ),
+              ),
             ),
+
             Container(
               width: 300,
               height: 400,
@@ -56,40 +135,60 @@ class HomePage extends StatelessWidget {
               margin: EdgeInsets.all(20),
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: Colors.orangeAccent,
-                border: Border.all(color: Colors.black, width: 3),
-                borderRadius: BorderRadius.all(Radius.circular(20)),
-                //shape: BoxShape.circle,
+                color: Colors.black,
+                borderRadius: BorderRadius.all(Radius.circular(25)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.shade400,
+                    blurRadius: 10,
+                    spreadRadius: 2,
+                  ),
+                ],
               ),
               child: Text(
-                "I am container!!!",
-                style: GoogleFonts.lobster(fontSize: 22),
+                "Welcome to my world 🌍",
+                style: GoogleFonts.lobster(
+                  fontSize: 20,
+                  color: Colors.white,
+                  letterSpacing: 1,
+                ),
               ),
             ),
           ],
         ),
       ),
+
       floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.deepPurple,
+        backgroundColor: Colors.black,
         foregroundColor: Colors.white,
         onPressed: () {},
-        child: Icon(Icons.edit),
+        child: Icon(Icons.add),
       ),
+
       endDrawer: NavigationDrawer(
         children: [
           ListTile(
-            leading: Icon(Icons.home_filled, color: Colors.blue),
-            title: Text("HomePage"),
+            leading: Icon(Icons.home_rounded, color: Colors.black),
+            title: Text(
+              "Home",
+              style: GoogleFonts.poppins(fontWeight: FontWeight.w500),
+            ),
             onTap: () {},
           ),
           ListTile(
-            leading: Icon(Icons.tune, color: Colors.green),
-            title: Text("Settings"),
+            leading: Icon(Icons.settings_rounded, color: Colors.blue),
+            title: Text(
+              "Settings",
+              style: GoogleFonts.poppins(fontWeight: FontWeight.w500),
+            ),
             onTap: () {},
           ),
           ListTile(
-            leading: Icon(Icons.account_circle, color: Colors.red),
-            title: Text("ProfilePage"),
+            leading: Icon(Icons.person_rounded, color: Colors.purple),
+            title: Text(
+              "Profile",
+              style: GoogleFonts.poppins(fontWeight: FontWeight.w500),
+            ),
             onTap: () {},
           ),
         ],
