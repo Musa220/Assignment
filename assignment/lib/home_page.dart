@@ -1,3 +1,4 @@
+import 'package:assignment/bmi_page.dart';
 import 'package:assignment/converter_page.dart';
 import 'package:assignment/login_page.dart';
 import 'package:flutter/material.dart';
@@ -24,7 +25,7 @@ class HomePage extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.all(12),
               child: Text(
-                "Hello Musa 👋",
+                "👋 Hi there!",
                 style: GoogleFonts.poppins(
                   color: Colors.black,
                   fontSize: 32,
@@ -73,17 +74,17 @@ class HomePage extends StatelessWidget {
                       context,
                       MaterialPageRoute(
                         builder: (context) {
-                          return LoginPage();
+                          return BmiCalculatorPage();
                         },
                       ),
                     );
                   },
                   style: OutlinedButton.styleFrom(
-                    backgroundColor: Colors.teal,
+                    backgroundColor: Colors.deepPurple,
                     foregroundColor: Colors.white,
                   ),
                   child: Text(
-                    "Login Page",
+                    "BMI Calculator",
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ),

@@ -20,6 +20,7 @@ class _ConverterPageState extends State {
     return Scaffold(
       appBar: AppBar(
         title: Text("Converter Page", style: GoogleFonts.lora()),
+        centerTitle: true,
         backgroundColor: Colors.black,
         foregroundColor: Colors.amber,
       ),
