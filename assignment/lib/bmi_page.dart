@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class BmiCalculatorPage extends StatefulWidget {
   const BmiCalculatorPage({super.key});
@@ -16,14 +17,15 @@ class _BmiCalculatorPageState extends State<BmiCalculatorPage> {
   TextEditingController inchController = TextEditingController();
 
   final _formKey = GlobalKey<FormState>();
+  final supabase = Supabase.instance.client;
 
   double bmi = 0;
   String category = "";
 
   void calculateBMI() {
-    double weight = double.parse(weightController.text);
-    double feet = double.parse(feetController.text);
-    double inch = double.parse(inchController.text);
+    double weight = double.tryParse(weightController.text) ?? 0;
+    double feet = double.tryParse(feetController.text) ?? 0;
+    double inch = double.tryParse(inchController.text) ?? 0;
 
     double totalInches = (feet * 12) + inch;
     double heightMeter = totalInches * 0.0254;
@@ -41,6 +43,43 @@ class _BmiCalculatorPageState extends State<BmiCalculatorPage> {
     }
   }
 
+  void saveBMIRecord() async {
+    final user = supabase.auth.currentUser;
+
+    if (user == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("User not logged in")));
+      return;
+    }
+
+    if (bmi == 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please calculate BMI first")),
+      );
+      return;
+    }
+
+    try {
+      await supabase.from('bmi_records').insert({
+        'user_id': user.id,
+        'weight': double.tryParse(weightController.text) ?? 0,
+        'feet': double.tryParse(feetController.text) ?? 0,
+        'inch': double.tryParse(inchController.text) ?? 0,
+        'bmi': bmi,
+        'category': category,
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("BMI record saved successfully")),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Error: $e")));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -52,7 +91,7 @@ class _BmiCalculatorPageState extends State<BmiCalculatorPage> {
       ),
       body: Center(
         child: SizedBox(
-          height: 560,
+          height: 620,
           width: 340,
           child: Card(
             color: Colors.deepPurple,
@@ -75,12 +114,12 @@ class _BmiCalculatorPageState extends State<BmiCalculatorPage> {
                       ),
                     ),
 
-                    SizedBox(height: 25),
+                    const SizedBox(height: 25),
 
                     TextFormField(
                       controller: weightController,
-                      style: TextStyle(color: Colors.white),
-                      keyboardType: TextInputType.numberWithOptions(
+                      style: const TextStyle(color: Colors.white),
+                      keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,
                       ),
                       validator: (value) {
@@ -89,7 +128,7 @@ class _BmiCalculatorPageState extends State<BmiCalculatorPage> {
                         }
                         return null;
                       },
-                      decoration: InputDecoration(
+                      decoration: const InputDecoration(
                         hintText: "Enter Weight here (in kg)",
                         hintStyle: TextStyle(color: Colors.white70),
                         prefixIcon: Icon(
@@ -107,11 +146,11 @@ class _BmiCalculatorPageState extends State<BmiCalculatorPage> {
                       ),
                     ),
 
-                    SizedBox(height: 20),
+                    const SizedBox(height: 20),
 
                     TextFormField(
                       controller: feetController,
-                      style: TextStyle(color: Colors.white),
+                      style: const TextStyle(color: Colors.white),
                       keyboardType: TextInputType.number,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
@@ -119,7 +158,7 @@ class _BmiCalculatorPageState extends State<BmiCalculatorPage> {
                         }
                         return null;
                       },
-                      decoration: InputDecoration(
+                      decoration: const InputDecoration(
                         hintText: "Enter Height here (feet)",
                         hintStyle: TextStyle(color: Colors.white70),
                         prefixIcon: Icon(Icons.height, color: Colors.white),
@@ -134,12 +173,12 @@ class _BmiCalculatorPageState extends State<BmiCalculatorPage> {
                       ),
                     ),
 
-                    SizedBox(height: 20),
+                    const SizedBox(height: 20),
 
                     TextFormField(
                       controller: inchController,
-                      style: TextStyle(color: Colors.white),
-                      keyboardType: TextInputType.numberWithOptions(
+                      style: const TextStyle(color: Colors.white),
+                      keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,
                       ),
                       validator: (value) {
@@ -148,7 +187,7 @@ class _BmiCalculatorPageState extends State<BmiCalculatorPage> {
                         }
                         return null;
                       },
-                      decoration: InputDecoration(
+                      decoration: const InputDecoration(
                         hintText: "Enter Height here (inches)",
                         hintStyle: TextStyle(color: Colors.white70),
                         prefixIcon: Icon(Icons.height, color: Colors.white),
@@ -163,25 +202,25 @@ class _BmiCalculatorPageState extends State<BmiCalculatorPage> {
                       ),
                     ),
 
-                    SizedBox(height: 25),
+                    const SizedBox(height: 25),
 
                     ElevatedButton(
                       onPressed: () {
                         if (_formKey.currentState!.validate()) {
-                          calculateBMI();
+                          setState(() {
+                            calculateBMI();
+                          });
                         }
-
-                        setState(() {});
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.amber,
                         foregroundColor: Colors.black,
-                        padding: EdgeInsets.symmetric(
+                        padding: const EdgeInsets.symmetric(
                           horizontal: 35,
                           vertical: 12,
                         ),
                       ),
-                      child: Text(
+                      child: const Text(
                         "Calculate",
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
@@ -190,7 +229,28 @@ class _BmiCalculatorPageState extends State<BmiCalculatorPage> {
                       ),
                     ),
 
-                    SizedBox(height: 25),
+                    const SizedBox(height: 12),
+
+                    ElevatedButton(
+                      onPressed: saveBMIRecord,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: Colors.black,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 25,
+                          vertical: 12,
+                        ),
+                      ),
+                      child: const Text(
+                        "Save Record",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 25),
 
                     Container(
                       height: 60,
@@ -211,7 +271,7 @@ class _BmiCalculatorPageState extends State<BmiCalculatorPage> {
                       ),
                     ),
 
-                    SizedBox(height: 20),
+                    const SizedBox(height: 20),
 
                     Text(
                       category,
