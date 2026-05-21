@@ -4,9 +4,51 @@ import 'package:assignment/converter_page.dart';
 import 'package:assignment/logout_page.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() {
+    return _HomePageState();
+  }
+}
+
+class _HomePageState extends State<HomePage> {
+  final supabase = Supabase.instance.client;
+
+  String userName = "there";
+
+  @override
+  void initState() {
+    super.initState();
+    fetchUserName();
+  }
+
+  void fetchUserName() async {
+    final user = supabase.auth.currentUser;
+
+    if (user == null) {
+      return;
+    }
+
+    try {
+      final data = await supabase
+          .from('profiles')
+          .select('name')
+          .eq('id', user.id)
+          .single();
+
+      setState(() {
+        userName = data['name'] ?? "there";
+      });
+    } catch (e) {
+      setState(() {
+        userName = "there";
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -39,7 +81,7 @@ class HomePage extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.all(12),
             child: Text(
-              "👋 Hi there!",
+              "👋 Hi $userName!",
               style: GoogleFonts.poppins(
                 color: Colors.black,
                 fontSize: 32,
