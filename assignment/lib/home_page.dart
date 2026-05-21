@@ -1,7 +1,7 @@
 import 'package:assignment/bmi_history_page.dart';
 import 'package:assignment/bmi_page.dart';
 import 'package:assignment/converter_page.dart';
-import 'package:assignment/login_page.dart';
+import 'package:assignment/logout_page.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -18,8 +18,22 @@ class HomePage extends StatelessWidget {
         ),
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
-        leading: Icon(Icons.grid_view_rounded, color: Colors.white),
+        leading: const Icon(Icons.grid_view_rounded, color: Colors.white),
+
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.exit_to_app),
+            tooltip: "Logout",
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const LogoutPage()),
+              );
+            },
+          ),
+        ],
       ),
+
       body: Column(
         children: [
           Padding(
@@ -33,6 +47,7 @@ class HomePage extends StatelessWidget {
               ),
             ),
           ),
+
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: Text(
@@ -40,7 +55,9 @@ class HomePage extends StatelessWidget {
               style: GoogleFonts.poppins(color: Colors.grey[700], fontSize: 18),
             ),
           ),
-          SizedBox(height: 10),
+
+          const SizedBox(height: 10),
+
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -50,7 +67,7 @@ class HomePage extends StatelessWidget {
                     context,
                     MaterialPageRoute(
                       builder: (context) {
-                        return ConverterPage();
+                        return const ConverterPage();
                       },
                     ),
                   );
@@ -59,20 +76,22 @@ class HomePage extends StatelessWidget {
                   backgroundColor: Colors.black,
                   foregroundColor: Colors.amber,
                 ),
-                icon: Icon(Icons.currency_exchange_rounded),
-                label: Text(
+                icon: const Icon(Icons.currency_exchange_rounded),
+                label: const Text(
                   "Converter Page",
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),
-              SizedBox(width: 20),
+
+              const SizedBox(width: 20),
+
               OutlinedButton.icon(
                 onPressed: () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (context) {
-                        return BmiCalculatorPage();
+                        return const BmiCalculatorPage();
                       },
                     ),
                   );
@@ -81,13 +100,15 @@ class HomePage extends StatelessWidget {
                   backgroundColor: Colors.deepPurple,
                   foregroundColor: Colors.white,
                 ),
-                icon: Icon(Icons.calculate_outlined),
-                label: Text(
+                icon: const Icon(Icons.calculate_outlined),
+                label: const Text(
                   "BMI Calculator",
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),
-              SizedBox(width: 20),
+
+              const SizedBox(width: 20),
+
               ElevatedButton.icon(
                 onPressed: () {
                   Navigator.push(

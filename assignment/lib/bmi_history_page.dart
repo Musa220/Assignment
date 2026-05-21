@@ -46,6 +46,127 @@ class _BmiHistoryPageState extends State<BmiHistoryPage> {
     }
   }
 
+  void updateBMIRecord(
+    String id,
+    double weight,
+    double feet,
+    double inch,
+  ) async {
+    try {
+      double totalInches = (feet * 12) + inch;
+      double heightMeter = totalInches * 0.0254;
+      double bmi = weight / (heightMeter * heightMeter);
+
+      String category = "";
+
+      if (bmi < 18.5) {
+        category = "Underweight";
+      } else if (bmi >= 18.5 && bmi <= 24.9) {
+        category = "Healthy";
+      } else if (bmi >= 25 && bmi <= 29.9) {
+        category = "Overweight";
+      } else {
+        category = "Obese";
+      }
+
+      await supabase
+          .from('bmi_records')
+          .update({
+            'weight': weight,
+            'feet': feet,
+            'inch': inch,
+            'bmi': bmi,
+            'category': category,
+          })
+          .eq('id', id);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("BMI record updated successfully")),
+      );
+
+      setState(() {});
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Error: $e")));
+    }
+  }
+
+  void showEditDialog(Map<String, dynamic> record) {
+    TextEditingController weightController = TextEditingController(
+      text: record['weight'].toString(),
+    );
+
+    TextEditingController feetController = TextEditingController(
+      text: record['feet'].toString(),
+    );
+
+    TextEditingController inchController = TextEditingController(
+      text: record['inch'].toString(),
+    );
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Edit BMI Record"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: weightController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: "Weight",
+                  suffixText: "kg",
+                ),
+              ),
+              TextField(
+                controller: feetController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: "Feet",
+                  suffixText: "ft",
+                ),
+              ),
+              TextField(
+                controller: inchController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: "Inch",
+                  suffixText: "in",
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: const Text("Cancel"),
+            ),
+            TextButton(
+              onPressed: () {
+                double weight = double.tryParse(weightController.text) ?? 0;
+                double feet = double.tryParse(feetController.text) ?? 0;
+                double inch = double.tryParse(inchController.text) ?? 0;
+
+                Navigator.pop(context);
+
+                updateBMIRecord(record['id'], weight, feet, inch);
+              },
+              child: const Text(
+                "Update",
+                style: TextStyle(color: Colors.deepPurple),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void showDeleteDialog(String id) {
     showDialog(
       context: context,
@@ -171,11 +292,22 @@ class _BmiHistoryPageState extends State<BmiHistoryPage> {
                       ),
                     ),
                   ),
-                  trailing: IconButton(
-                    onPressed: () {
-                      showDeleteDialog(record['id']);
-                    },
-                    icon: const Icon(Icons.delete, color: Colors.redAccent),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        onPressed: () {
+                          showEditDialog(record);
+                        },
+                        icon: const Icon(Icons.edit, color: Colors.amber),
+                      ),
+                      IconButton(
+                        onPressed: () {
+                          showDeleteDialog(record['id']);
+                        },
+                        icon: const Icon(Icons.delete, color: Colors.redAccent),
+                      ),
+                    ],
                   ),
                 ),
               );
