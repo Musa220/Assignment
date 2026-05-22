@@ -75,7 +75,7 @@ class _LoginPageState extends State<LoginPage> {
                   SizedBox(height: 40),
                   Form(
                     key: _formKey,
-                    autovalidateMode: AutovalidateMode.onUserInteraction,
+                    //autovalidateMode: AutovalidateMode.onUserInteraction,
                     child: Column(
                       children: [
                         TextFormField(

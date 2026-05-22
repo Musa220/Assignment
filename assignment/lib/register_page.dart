@@ -85,7 +85,7 @@ class _RegisterPageState extends State<RegisterPage> {
               padding: const EdgeInsets.all(15.0),
               child: Form(
                 key: _formKey,
-                autovalidateMode: AutovalidateMode.onUserInteraction,
+                //autovalidateMode: AutovalidateMode.onUserInteraction,
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
