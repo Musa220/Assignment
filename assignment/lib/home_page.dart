@@ -3,17 +3,18 @@ import 'package:assignment/bmi_page.dart';
 import 'package:assignment/converter_page.dart';
 import 'package:assignment/logout_page.dart';
 import 'package:assignment/main.dart';
+import 'package:assignment/profile_page.dart';
+import 'package:assignment/water_intake_page.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:assignment/sleep_tracker_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
   @override
-  State<HomePage> createState() {
-    return _HomePageState();
-  }
+  State<HomePage> createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
@@ -28,10 +29,7 @@ class _HomePageState extends State<HomePage> {
 
   void fetchUserName() async {
     final user = supabase.auth.currentUser;
-
-    if (user == null) {
-      return;
-    }
+    if (user == null) return;
 
     try {
       final data = await supabase
@@ -55,8 +53,10 @@ class _HomePageState extends State<HomePage> {
     required String title,
     required String subtitle,
     required VoidCallback onTap,
+    Color? iconColor,
   }) {
     final colors = Theme.of(context).colorScheme;
+    final color = iconColor ?? colors.primary;
 
     return Card(
       child: InkWell(
@@ -70,10 +70,10 @@ class _HomePageState extends State<HomePage> {
                 height: 55,
                 width: 55,
                 decoration: BoxDecoration(
-                  color: colors.primary.withOpacity(0.12),
+                  color: color.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(18),
                 ),
-                child: Icon(icon, color: colors.primary, size: 30),
+                child: Icon(icon, color: color, size: 30),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -100,11 +100,7 @@ class _HomePageState extends State<HomePage> {
                   ],
                 ),
               ),
-              Icon(
-                Icons.arrow_forward_ios_rounded,
-                size: 18,
-                color: colors.primary,
-              ),
+              Icon(Icons.arrow_forward_ios_rounded, size: 18, color: color),
             ],
           ),
         ),
@@ -131,13 +127,24 @@ class _HomePageState extends State<HomePage> {
               });
             },
           ),
+          // Profile icon shortcut
+          IconButton(
+            icon: const Icon(Icons.person_outline),
+            tooltip: "Profile",
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ProfilePage()),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.exit_to_app),
             tooltip: "Logout",
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const LogoutPage()),
+                MaterialPageRoute(builder: (_) => const LogoutPage()),
               );
             },
           ),
@@ -154,6 +161,7 @@ class _HomePageState extends State<HomePage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // ── Welcome Banner ──
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(22),
@@ -205,15 +213,17 @@ class _HomePageState extends State<HomePage> {
 
                     const SizedBox(height: 14),
 
+                    // ── Currency Converter ──
                     homeButton(
                       icon: Icons.currency_exchange_rounded,
                       title: "Currency Converter",
                       subtitle: "Convert live currency rates",
+                      iconColor: const Color(0xFFF59E0B),
                       onTap: () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => const ConverterPage(),
+                            builder: (_) => const ConverterPage(),
                           ),
                         );
                       },
@@ -221,15 +231,53 @@ class _HomePageState extends State<HomePage> {
 
                     const SizedBox(height: 12),
 
+                    // ── BMI Calculator ──
                     homeButton(
                       icon: Icons.calculate_outlined,
                       title: "BMI Calculator",
                       subtitle: "Calculate your body mass index",
+                      iconColor: const Color(0xFF8B5CF6),
                       onTap: () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => const BmiCalculatorPage(),
+                            builder: (_) => const BmiCalculatorPage(),
+                          ),
+                        );
+                      },
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    // ── BMI History ──
+                    homeButton(
+                      icon: Icons.history_rounded,
+                      title: "BMI History",
+                      subtitle: "View, edit, and delete saved records",
+                      iconColor: const Color(0xFF6C63FF),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const BmiHistoryPage(),
+                          ),
+                        );
+                      },
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    // ── Water Tracker (NEW) ──
+                    homeButton(
+                      icon: Icons.water_drop_outlined,
+                      title: "Water Tracker",
+                      subtitle: "Track your daily water intake",
+                      iconColor: const Color(0xFF2196F3),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const WaterIntakePage(),
                           ),
                         );
                       },
@@ -238,18 +286,20 @@ class _HomePageState extends State<HomePage> {
                     const SizedBox(height: 12),
 
                     homeButton(
-                      icon: Icons.history_rounded,
-                      title: "BMI History",
-                      subtitle: "View, edit, and delete saved records",
+                      icon: Icons.bedtime_outlined,
+                      title: "Sleep Tracker",
+                      subtitle: "Log and track your sleep",
+                      iconColor: const Color(0xFF10B981),
                       onTap: () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => const BmiHistoryPage(),
+                            builder: (_) => const SleepTrackerPage(),
                           ),
                         );
                       },
                     ),
+                    const SizedBox(height: 12),
                   ],
                 ),
               ),
