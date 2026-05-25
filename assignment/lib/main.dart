@@ -1,11 +1,15 @@
 import 'package:assignment/auth_gate.dart';
+import 'package:assignment/notification_service.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:timezone/timezone.dart' as tz;
+import 'package:timezone/data/latest.dart' as tz;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
+  await NotificationService.init();
   await Supabase.initialize(
     url: "https://uyncxaniomehxwpgfnns.supabase.co",
     anonKey: "sb_publishable_mQBwk3ESlB6-RczYV7C7hA_J4n0RNBZ",

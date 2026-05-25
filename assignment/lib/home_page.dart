@@ -1,6 +1,7 @@
 import 'package:assignment/bmi_history_page.dart';
 import 'package:assignment/bmi_page.dart';
 import 'package:assignment/converter_page.dart';
+
 import 'package:assignment/logout_page.dart';
 import 'package:assignment/main.dart';
 import 'package:assignment/profile_page.dart';
@@ -20,6 +21,26 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final supabase = Supabase.instance.client;
   String userName = "there";
+  String getTodayDate() {
+    final now = DateTime.now();
+
+    final months = [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
+    ];
+
+    return "${now.day} ${months[now.month - 1]} ${now.year}";
+  }
 
   @override
   void initState() {
@@ -191,10 +212,10 @@ class _HomePageState extends State<HomePage> {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            "Welcome back",
+                            getTodayDate(),
                             style: GoogleFonts.poppins(
-                              color: Colors.white.withOpacity(0.9),
-                              fontSize: 15,
+                              color: Colors.white.withOpacity(0.85),
+                              fontSize: 13,
                             ),
                           ),
                         ],
@@ -254,7 +275,7 @@ class _HomePageState extends State<HomePage> {
                       icon: Icons.history_rounded,
                       title: "BMI History",
                       subtitle: "View, edit, and delete saved records",
-                      iconColor: const Color(0xFF6C63FF),
+                      iconColor: const Color(0xFFEF4444),
                       onTap: () {
                         Navigator.push(
                           context,

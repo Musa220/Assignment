@@ -1,5 +1,7 @@
+import 'package:assignment/water_remainder_page.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class WaterIntakePage extends StatefulWidget {
@@ -13,9 +15,10 @@ class _WaterIntakePageState extends State<WaterIntakePage>
     with SingleTickerProviderStateMixin {
   final supabase = Supabase.instance.client;
 
-  double totalIntake = 0; // in ml
-  double dailyGoal = 2500; // default 2500ml
+  double totalIntake = 0;
+  double dailyGoal = 2500;
   bool isLoading = false;
+  bool isReminderOn = false;
 
   late AnimationController _animController;
   late Animation<double> _waveAnim;
@@ -38,12 +41,20 @@ class _WaterIntakePageState extends State<WaterIntakePage>
     )..repeat();
     _waveAnim = Tween<double>(begin: 0, end: 1).animate(_animController);
     fetchTodayIntake();
+    _loadReminderStatus();
   }
 
   @override
   void dispose() {
     _animController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadReminderStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      isReminderOn = prefs.getBool('water_reminder_on') ?? false;
+    });
   }
 
   Future<void> fetchTodayIntake() async {
@@ -214,13 +225,15 @@ class _WaterIntakePageState extends State<WaterIntakePage>
     );
   }
 
-  double get progress => (totalIntake / dailyGoal).clamp(0.0, 1.0);
-
-  Color get progressColor {
-    if (progress < 0.4) return const Color(0xFFFF6B6B);
-    if (progress < 0.7) return const Color(0xFFFFB347);
-    return const Color(0xFF2196F3);
+  void openReminderPage() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const WaterReminderPage()),
+    );
+    _loadReminderStatus(); // refresh status on return
   }
+
+  double get progress => (totalIntake / dailyGoal).clamp(0.0, 1.0);
 
   String get statusMessage {
     if (progress >= 1.0) return "🎉 Daily goal achieved!";
@@ -245,6 +258,36 @@ class _WaterIntakePageState extends State<WaterIntakePage>
       appBar: AppBar(
         title: Text('Water Tracker 💧', style: GoogleFonts.poppins()),
         actions: [
+          // 🔔 Bell icon with green dot when active
+          Stack(
+            children: [
+              IconButton(
+                icon: Icon(
+                  isReminderOn
+                      ? Icons.notifications_active
+                      : Icons.notifications_outlined,
+                  color: isReminderOn ? Colors.amber : Colors.white,
+                ),
+                tooltip: isReminderOn
+                    ? 'Reminder ON — tap to manage'
+                    : 'Set Water Reminder',
+                onPressed: openReminderPage,
+              ),
+              if (isReminderOn)
+                Positioned(
+                  right: 10,
+                  top: 10,
+                  child: Container(
+                    width: 8,
+                    height: 8,
+                    decoration: const BoxDecoration(
+                      color: Colors.green,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+            ],
+          ),
           IconButton(
             icon: const Icon(Icons.flag_outlined),
             tooltip: 'Set Goal',
@@ -263,18 +306,15 @@ class _WaterIntakePageState extends State<WaterIntakePage>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Progress Card
+                  // ── Progress Card ──
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
+                      gradient: const LinearGradient(
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
-                        colors: [
-                          const Color(0xFF1565C0),
-                          const Color(0xFF42A5F5),
-                        ],
+                        colors: [Color(0xFF1565C0), Color(0xFF42A5F5)],
                       ),
                       borderRadius: BorderRadius.circular(28),
                       boxShadow: [
@@ -303,7 +343,6 @@ class _WaterIntakePageState extends State<WaterIntakePage>
                           ),
                         ),
                         const SizedBox(height: 16),
-                        // Progress bar
                         ClipRRect(
                           borderRadius: BorderRadius.circular(10),
                           child: LinearProgressIndicator(
@@ -336,9 +375,66 @@ class _WaterIntakePageState extends State<WaterIntakePage>
                     ),
                   ),
 
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 16),
 
-                  // Quick Add Buttons
+                  // ── Reminder status banner ──
+                  GestureDetector(
+                    onTap: openReminderPage,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 300),
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isReminderOn
+                            ? Colors.green.withOpacity(0.1)
+                            : Colors.orange.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: isReminderOn
+                              ? Colors.green.withOpacity(0.3)
+                              : Colors.orange.withOpacity(0.3),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            isReminderOn
+                                ? Icons.notifications_active
+                                : Icons.notifications_off_outlined,
+                            color: isReminderOn ? Colors.green : Colors.orange,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              isReminderOn
+                                  ? 'Water reminders are ON ✅'
+                                  : 'Water reminders are OFF — Tap to set',
+                              style: GoogleFonts.poppins(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color: isReminderOn
+                                    ? Colors.green
+                                    : Colors.orange,
+                              ),
+                            ),
+                          ),
+                          Icon(
+                            Icons.arrow_forward_ios_rounded,
+                            size: 14,
+                            color: isReminderOn ? Colors.green : Colors.orange,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // ── Quick Add ──
                   Text(
                     'Quick Add',
                     style: GoogleFonts.poppins(
@@ -400,7 +496,6 @@ class _WaterIntakePageState extends State<WaterIntakePage>
 
                   const SizedBox(height: 12),
 
-                  // Custom amount button
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton.icon(
@@ -421,7 +516,7 @@ class _WaterIntakePageState extends State<WaterIntakePage>
 
                   const SizedBox(height: 24),
 
-                  // Today's log
+                  // ── Today's Log ──
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
