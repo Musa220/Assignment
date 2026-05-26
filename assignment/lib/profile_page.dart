@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
@@ -12,505 +11,378 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  final supabase = Supabase.instance.client;
-  final _formKey = GlobalKey<FormState>();
+  final SupabaseClient supabase = Supabase.instance.client;
 
-  final _nameController = TextEditingController();
-  final _ageController = TextEditingController();
-  final _heightController = TextEditingController();
-  final _weightController = TextEditingController();
+  final TextEditingController nameController = TextEditingController();
+  final TextEditingController ageController = TextEditingController();
+  final TextEditingController heightController = TextEditingController();
+  final TextEditingController weightController = TextEditingController();
 
-  String? avatarUrl;
-  bool isLoading = true;
-  bool isSaving = false;
-  bool isUploadingPhoto = false;
-  String userEmail = '';
+  String? profileImageUrl;
+  bool isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    fetchProfile();
+    loadProfile();
   }
 
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _ageController.dispose();
-    _heightController.dispose();
-    _weightController.dispose();
-    super.dispose();
-  }
-
-  Future<void> fetchProfile() async {
-    setState(() => isLoading = true);
+  Future<void> loadProfile() async {
     final user = supabase.auth.currentUser;
-    if (user == null) return;
 
-    userEmail = user.email ?? '';
+    if (user == null) {
+      return;
+    }
 
     try {
-      final data = await supabase
+      final response = await supabase
           .from('profiles')
           .select()
           .eq('id', user.id)
-          .single();
+          .maybeSingle();
 
-      _nameController.text = data['name'] ?? '';
-      _ageController.text = data['age']?.toString() ?? '';
-      _heightController.text = data['height']?.toString() ?? '';
-      _weightController.text = data['weight']?.toString() ?? '';
-      avatarUrl = data['avatar_url'];
-
-      setState(() => isLoading = false);
+      if (response != null) {
+        setState(() {
+          nameController.text = response['full_name']?.toString() ?? '';
+          ageController.text = response['age']?.toString() ?? '';
+          heightController.text = response['height']?.toString() ?? '';
+          weightController.text = response['weight']?.toString() ?? '';
+          profileImageUrl = response['avatar_url']?.toString();
+        });
+      }
     } catch (e) {
-      setState(() => isLoading = false);
+      showMessage('Profile load failed: $e');
+    }
+  }
+
+  Future<void> pickAndUploadImage() async {
+    final user = supabase.auth.currentUser;
+
+    if (user == null) {
+      showMessage('User not logged in');
+      return;
+    }
+
+    try {
+      final ImagePicker picker = ImagePicker();
+
+      final XFile? pickedImage = await picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 80,
+      );
+
+      if (pickedImage == null) {
+        return;
+      }
+
+      setState(() {
+        isLoading = true;
+      });
+
+      // File() use korchi na. Bytes use korchi.
+      // Eta phone/app/web sob jaygay safer.
+      final bytes = await pickedImage.readAsBytes();
+
+      // Protibar new file name hobe, tai 2nd time upload fail korbe na
+      final String filePath =
+          '${user.id}/profile_${DateTime.now().millisecondsSinceEpoch}.jpg';
+
+      await supabase.storage
+          .from('avatars')
+          .uploadBinary(
+            filePath,
+            bytes,
+            fileOptions: const FileOptions(
+              contentType: 'image/jpeg',
+              cacheControl: '3600',
+            ),
+          );
+
+      final String publicUrl = supabase.storage
+          .from('avatars')
+          .getPublicUrl(filePath);
+
+      await supabase.from('profiles').upsert({
+        'id': user.id,
+        'email': user.email,
+        'avatar_url': publicUrl,
+      });
+
+      setState(() {
+        profileImageUrl = publicUrl;
+      });
+
+      showMessage('Photo uploaded successfully');
+    } catch (e) {
+      showMessage('Photo upload failed: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
     }
   }
 
   Future<void> saveProfile() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    setState(() => isSaving = true);
     final user = supabase.auth.currentUser;
-    if (user == null) return;
+
+    if (user == null) {
+      showMessage('User not logged in');
+      return;
+    }
 
     try {
+      setState(() {
+        isLoading = true;
+      });
+
       await supabase.from('profiles').upsert({
         'id': user.id,
-        'name': _nameController.text.trim(),
-        'email': userEmail,
-        'age': int.tryParse(_ageController.text),
-        'height': double.tryParse(_heightController.text),
-        'weight': double.tryParse(_weightController.text),
-        'avatar_url': avatarUrl,
-        'updated_at': DateTime.now().toIso8601String(),
+        'email': user.email,
+        'full_name': nameController.text.trim(),
+        'age': int.tryParse(ageController.text.trim()),
+        'height': double.tryParse(heightController.text.trim()),
+        'weight': double.tryParse(weightController.text.trim()),
+        'avatar_url': profileImageUrl,
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Profile saved! ✅', style: GoogleFonts.poppins()),
-          backgroundColor: Colors.green,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      );
+      showMessage('Profile saved successfully');
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      showMessage('Profile save failed: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
     }
-
-    setState(() => isSaving = false);
   }
 
-  Future<void> pickAndUploadPhoto() async {
-    final picker = ImagePicker();
-    final picked = await picker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 70,
+  void showMessage(String message) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.black87),
     );
-    if (picked == null) return;
-
-    setState(() => isUploadingPhoto = true);
-    final user = supabase.auth.currentUser;
-    if (user == null) return;
-
-    try {
-      final file = File(picked.path);
-      final fileExt = picked.path.split('.').last;
-      final filePath = 'avatars/${user.id}.$fileExt';
-
-      await supabase.storage
-          .from('avatars')
-          .upload(filePath, file, fileOptions: const FileOptions(upsert: true));
-
-      final url = supabase.storage.from('avatars').getPublicUrl(filePath);
-
-      setState(() {
-        avatarUrl = '$url?t=${DateTime.now().millisecondsSinceEpoch}';
-        isUploadingPhoto = false;
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Photo updated! 📷', style: GoogleFonts.poppins()),
-          backgroundColor: Colors.green,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      );
-    } catch (e) {
-      setState(() => isUploadingPhoto = false);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Photo upload failed: $e')));
-    }
   }
 
-  // Computed BMI from profile fields
-  String get computedBmi {
-    final height = double.tryParse(_heightController.text);
-    final weight = double.tryParse(_weightController.text);
-    if (height == null || weight == null || height == 0) return '--';
-    final heightM = height / 100; // assuming cm input
-    final bmi = weight / (heightM * heightM);
-    return bmi.toStringAsFixed(1);
+  @override
+  void dispose() {
+    nameController.dispose();
+    ageController.dispose();
+    heightController.dispose();
+    weightController.dispose();
+    super.dispose();
+  }
+
+  Widget buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    TextInputType keyboardType = TextInputType.text,
+  }) {
+    return TextField(
+      controller: controller,
+      keyboardType: keyboardType,
+      style: GoogleFonts.poppins(fontSize: 18, color: Colors.black),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: GoogleFonts.poppins(color: Colors.grey[700]),
+        prefixIcon: Icon(icon, color: const Color(0xFF625BFF)),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(18)),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(18),
+          borderSide: const BorderSide(color: Colors.grey),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(18),
+          borderSide: const BorderSide(color: Color(0xFF625BFF), width: 2),
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final user = supabase.auth.currentUser;
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF6F7FB),
       appBar: AppBar(
-        title: Text('My Profile', style: GoogleFonts.poppins()),
+        backgroundColor: const Color(0xFF625BFF),
+        foregroundColor: Colors.white,
+        elevation: 0,
+        title: Text(
+          'My Profile',
+          style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
         actions: [
-          TextButton.icon(
-            onPressed: isSaving ? null : saveProfile,
-            icon: isSaving
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
-                : const Icon(Icons.save_outlined, color: Colors.white),
-            label: Text(
-              'Save',
-              style: GoogleFonts.poppins(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
+          IconButton(onPressed: saveProfile, icon: const Icon(Icons.save)),
         ],
       ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
               padding: const EdgeInsets.all(20),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // ── Avatar Section ──
-                    Center(
-                      child: Column(
-                        children: [
-                          Stack(
-                            children: [
-                              GestureDetector(
-                                onTap: pickAndUploadPhoto,
-                                child: Container(
-                                  width: 110,
-                                  height: 110,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: colors.primary,
-                                      width: 3,
-                                    ),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: colors.primary.withOpacity(0.2),
-                                        blurRadius: 16,
-                                        offset: const Offset(0, 6),
-                                      ),
-                                    ],
-                                  ),
-                                  child: ClipOval(
-                                    child: isUploadingPhoto
-                                        ? Container(
-                                            color: colors.primary.withOpacity(
-                                              0.1,
-                                            ),
-                                            child: const Center(
-                                              child:
-                                                  CircularProgressIndicator(),
-                                            ),
-                                          )
-                                        : avatarUrl != null
-                                        ? Image.network(
-                                            avatarUrl!,
-                                            fit: BoxFit.cover,
-                                            errorBuilder: (_, __, ___) =>
-                                                _defaultAvatar(colors),
-                                          )
-                                        : _defaultAvatar(colors),
-                                  ),
-                                ),
-                              ),
-                              Positioned(
-                                bottom: 2,
-                                right: 2,
-                                child: GestureDetector(
-                                  onTap: pickAndUploadPhoto,
-                                  child: Container(
-                                    padding: const EdgeInsets.all(6),
-                                    decoration: BoxDecoration(
-                                      color: colors.primary,
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                        color: Colors.white,
-                                        width: 2,
-                                      ),
-                                    ),
-                                    child: const Icon(
-                                      Icons.camera_alt,
-                                      color: Colors.white,
-                                      size: 16,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 10),
-                          Text(
-                            userEmail,
-                            style: GoogleFonts.poppins(
-                              fontSize: 13,
-                              color: Colors.grey,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Tap photo to change',
-                            style: GoogleFonts.poppins(
-                              fontSize: 12,
-                              color: colors.primary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+              child: Column(
+                children: [
+                  const SizedBox(height: 20),
 
-                    const SizedBox(height: 28),
-
-                    // ── Personal Info ──
-                    _sectionTitle('Personal Information'),
-                    const SizedBox(height: 12),
-
-                    _buildField(
-                      controller: _nameController,
-                      label: 'Full Name',
-                      icon: Icons.person_outline,
-                      validator: (v) =>
-                          v == null || v.isEmpty ? 'Name is required' : null,
-                    ),
-                    const SizedBox(height: 14),
-
-                    _buildField(
-                      controller: _ageController,
-                      label: 'Age',
-                      icon: Icons.cake_outlined,
-                      keyboardType: TextInputType.number,
-                      validator: (v) {
-                        if (v == null || v.isEmpty) return 'Age is required';
-                        final age = int.tryParse(v);
-                        if (age == null || age < 1 || age > 120) {
-                          return 'Enter a valid age';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 28),
-
-                    // ── Body Measurements ──
-                    _sectionTitle('Body Measurements'),
-                    const SizedBox(height: 12),
-
-                    Row(
+                  GestureDetector(
+                    onTap: pickAndUploadImage,
+                    child: Stack(
+                      alignment: Alignment.bottomRight,
                       children: [
-                        Expanded(
-                          child: _buildField(
-                            controller: _heightController,
-                            label: 'Height (cm)',
-                            icon: Icons.height,
-                            keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true,
-                            ),
-                            onChanged: (_) => setState(() {}),
-                          ),
+                        CircleAvatar(
+                          radius: 70,
+                          backgroundColor: Colors.white,
+                          backgroundImage:
+                              profileImageUrl != null &&
+                                  profileImageUrl!.isNotEmpty
+                              ? NetworkImage(profileImageUrl!)
+                              : null,
+                          child:
+                              profileImageUrl == null ||
+                                  profileImageUrl!.isEmpty
+                              ? const Icon(
+                                  Icons.person,
+                                  size: 80,
+                                  color: Color(0xFF625BFF),
+                                )
+                              : null,
                         ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: _buildField(
-                            controller: _weightController,
-                            label: 'Weight (kg)',
-                            icon: Icons.monitor_weight_outlined,
-                            keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true,
-                            ),
-                            onChanged: (_) => setState(() {}),
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: const BoxDecoration(
+                            color: Color(0xFF625BFF),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.camera_alt,
+                            color: Colors.white,
+                            size: 24,
                           ),
                         ),
                       ],
                     ),
+                  ),
 
-                    const SizedBox(height: 20),
+                  const SizedBox(height: 12),
 
-                    // BMI Preview card
-                    if (_heightController.text.isNotEmpty &&
-                        _weightController.text.isNotEmpty)
-                      _bmiPreviewCard(colors),
+                  Text(
+                    user?.email ?? 'No email',
+                    style: GoogleFonts.poppins(
+                      fontSize: 15,
+                      color: Colors.grey[600],
+                    ),
+                  ),
 
-                    const SizedBox(height: 30),
+                  const SizedBox(height: 5),
 
-                    // Save button
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: isSaving ? null : saveProfile,
-                        icon: isSaving
-                            ? const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : const Icon(Icons.save),
-                        label: Text(
-                          isSaving ? 'Saving...' : 'Save Profile',
-                          style: GoogleFonts.poppins(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
+                  Text(
+                    'Tap photo to change',
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      color: const Color(0xFF625BFF),
+                    ),
+                  ),
+
+                  const SizedBox(height: 35),
+
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Personal Information',
+                      style: GoogleFonts.poppins(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 15),
+
+                  buildTextField(
+                    controller: nameController,
+                    label: 'Full Name',
+                    icon: Icons.person_outline,
+                  ),
+
+                  const SizedBox(height: 18),
+
+                  buildTextField(
+                    controller: ageController,
+                    label: 'Age',
+                    icon: Icons.cake_outlined,
+                    keyboardType: TextInputType.number,
+                  ),
+
+                  const SizedBox(height: 30),
+
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Body Measurements',
+                      style: GoogleFonts.poppins(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 15),
+
+                  Row(
+                    children: [
+                      Expanded(
+                        child: buildTextField(
+                          controller: heightController,
+                          label: 'Height (cm)',
+                          icon: Icons.height,
+                          keyboardType: TextInputType.number,
                         ),
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(18),
-                          ),
+                      ),
+                      const SizedBox(width: 15),
+                      Expanded(
+                        child: buildTextField(
+                          controller: weightController,
+                          label: 'Weight (kg)',
+                          icon: Icons.monitor_weight_outlined,
+                          keyboardType: TextInputType.number,
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 45),
+
+                  SizedBox(
+                    width: double.infinity,
+                    height: 60,
+                    child: ElevatedButton.icon(
+                      onPressed: saveProfile,
+                      icon: const Icon(Icons.save),
+                      label: Text(
+                        'Save Profile',
+                        style: GoogleFonts.poppins(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF625BFF),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(18),
                         ),
                       ),
                     ),
-
-                    const SizedBox(height: 20),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
-    );
-  }
-
-  Widget _defaultAvatar(ColorScheme colors) {
-    return Container(
-      color: colors.primary.withOpacity(0.1),
-      child: Icon(Icons.person, size: 60, color: colors.primary),
-    );
-  }
-
-  Widget _sectionTitle(String title) {
-    return Text(
-      title,
-      style: GoogleFonts.poppins(fontSize: 17, fontWeight: FontWeight.bold),
-    );
-  }
-
-  Widget _buildField({
-    required TextEditingController controller,
-    required String label,
-    required IconData icon,
-    TextInputType keyboardType = TextInputType.text,
-    String? Function(String?)? validator,
-    void Function(String)? onChanged,
-  }) {
-    final colors = Theme.of(context).colorScheme;
-    return TextFormField(
-      controller: controller,
-      keyboardType: keyboardType,
-      validator: validator,
-      onChanged: onChanged,
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(icon, color: colors.primary),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: colors.primary, width: 2),
-        ),
-      ),
-    );
-  }
-
-  Widget _bmiPreviewCard(ColorScheme colors) {
-    final bmi = double.tryParse(computedBmi);
-    String category = '--';
-    Color catColor = Colors.grey;
-
-    if (bmi != null) {
-      if (bmi < 18.5) {
-        category = 'Underweight';
-        catColor = Colors.blue;
-      } else if (bmi <= 24.9) {
-        category = 'Healthy';
-        catColor = Colors.green;
-      } else if (bmi <= 29.9) {
-        category = 'Overweight';
-        catColor = Colors.orange;
-      } else {
-        category = 'Obese';
-        catColor = Colors.red;
-      }
-    }
-
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: catColor.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: catColor.withOpacity(0.3)),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.calculate_outlined, color: catColor, size: 32),
-          const SizedBox(width: 16),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Your BMI',
-                style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey),
-              ),
-              Text(
-                computedBmi,
-                style: GoogleFonts.poppins(
-                  fontSize: 26,
-                  fontWeight: FontWeight.bold,
-                  color: catColor,
-                ),
-              ),
-            ],
-          ),
-          const Spacer(),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: catColor.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Text(
-              category,
-              style: GoogleFonts.poppins(
-                color: catColor,
-                fontWeight: FontWeight.bold,
-                fontSize: 13,
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
